@@ -1,9 +1,9 @@
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Duration, Utc};
 use flate2::read::GzDecoder;
+use rari_shared::download::{download_bytes, download_json};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tar::Archive;
@@ -35,8 +35,7 @@ pub fn get_package(
             && current.latest_last_check.unwrap_or_default() < now - Duration::days(1)
     {
         let body: Value =
-            reqwest::blocking::get(format!("https://registry.npmjs.org/{package}/{version}"))?
-                .json()?;
+            download_json(&format!("https://registry.npmjs.org/{package}/{version}"))?;
 
         let latest_version = body["version"]
             .as_str()
@@ -61,8 +60,7 @@ pub fn get_package(
                 fs::remove_dir_all(&package_path)?;
             }
             fs::create_dir_all(&package_path)?;
-            let mut buf = vec![];
-            let _ = reqwest::blocking::get(tarball_url)?.read_to_end(&mut buf)?;
+            let buf = download_bytes(tarball_url)?;
             let gz = GzDecoder::new(&buf[..]);
             let mut ar = Archive::new(gz);
             ar.unpack(&package_path)?;

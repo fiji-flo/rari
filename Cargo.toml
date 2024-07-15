@@ -8,6 +8,7 @@ authors = ["Florian Dieminger <me@fiji-flo.de>"]
 [workspace]
 resolver = "2"
 members = [
+    "crates/rari-shared",
     "crates/rari-data",
     "crates/rari-deps",
     "crates/rari-types",

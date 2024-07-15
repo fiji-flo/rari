@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::BufWriter;
 
 use chrono::Utc;
+use rari_shared::download::download_bytes;
 use rari_types::globals::content_root;
 use rari_types::Popularities;
 use serde::Deserialize;
@@ -22,8 +23,8 @@ pub fn update_popularities(limit: usize) -> Popularities {
         date: Utc::now().naive_utc(),
     };
     let mut max = f64::INFINITY;
-    let pop_csv = reqwest::blocking::get(CURRENT_URL).expect("unable to download popularities");
-    let mut rdr = csv::Reader::from_reader(pop_csv);
+    let pop_csv = download_bytes(CURRENT_URL).expect("unable to download popularities");
+    let mut rdr = csv::Reader::from_reader(pop_csv.as_slice());
     for row in rdr.deserialize::<PopularityRow>().flatten().take(limit) {
         if row.page.contains("/docs/") && !row.page.contains(['$', '?']) {
             if max.is_infinite() {
