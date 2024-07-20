@@ -1,4 +1,3 @@
-pub mod apiref;
 pub mod badges;
 pub mod banners;
 pub mod compat;
@@ -12,6 +11,7 @@ pub mod links;
 pub mod listsubpages;
 pub mod previous_menu_next;
 pub mod quick_links_with_subpages;
+pub mod sidebars;
 pub mod specification;
 pub mod web_ext_examples;
 
@@ -28,7 +28,7 @@ pub fn invoke(
     args: Vec<Option<Arg>>,
 ) -> Result<(String, bool), DocError> {
     let name = ident.to_lowercase();
-    let is_sidebar = matches!(name.as_str(), "apiref" | "defaultapisidebar");
+    let is_sidebar = matches!(name.as_str(), "apiref" | "defaultapisidebar" | "jsref");
     let f = match name.as_str() {
         "compat" => compat::compat_any,
         "specifications" => specification::specification_any,
@@ -89,11 +89,12 @@ pub fn invoke(
         "mathmlelement" => links::mathmlxref::mathmlxref_any,
 
         // sidebars
-        "apiref" => apiref::apiref_any,
-        "defaultapisidebar" => apiref::default_api_sidebar_any,
+        "apiref" => sidebars::apiref_any,
+        "defaultapisidebar" => sidebars::default_api_sidebar_any,
+        "jsref" => sidebars::jsref_any,
 
         // ignore
-        "cssref" | "glossarysidebar" | "jsref" => return Ok(Default::default()),
+        "cssref" | "glossarysidebar" => return Ok(Default::default()),
 
         // unknown
         _ if deny_warnings() => return Err(DocError::UnknownMacro(ident.to_string())),
