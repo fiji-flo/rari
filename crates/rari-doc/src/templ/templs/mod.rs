@@ -22,13 +22,27 @@ use tracing::error;
 use crate::error::DocError;
 use crate::utils::TEMPL_RECORDER;
 
+pub enum TemplatedOrSidebar {
+    Templeated(String),
+    Sidebar(&'static str),
+}
+
 pub fn invoke(
     env: &RariEnv,
     ident: &str,
     args: Vec<Option<Arg>>,
-) -> Result<(String, bool), DocError> {
+) -> Result<TemplatedOrSidebar, DocError> {
     let name = ident.to_lowercase();
-    let is_sidebar = matches!(name.as_str(), "apiref" | "defaultapisidebar");
+
+    if let Some(sidebar) = match name.as_str() {
+        "cssref" => Some("cssref"),
+        "jsref" => Some("jsref"),
+        "glossarysidebar" => Some("glossarysidebar"),
+        _ => None,
+    } {
+        return Ok(TemplatedOrSidebar::Sidebar(sidebar));
+    };
+
     let f = match name.as_str() {
         "compat" => compat::compat_any,
         "specifications" => specification::specification_any,
@@ -93,7 +107,6 @@ pub fn invoke(
         "defaultapisidebar" => apiref::default_api_sidebar_any,
 
         // ignore
-        "cssref" | "glossarysidebar" | "jsref" => return Ok(Default::default()),
 
         // unknown
         _ if deny_warnings() => return Err(DocError::UnknownMacro(ident.to_string())),
@@ -105,8 +118,10 @@ pub fn invoke(
                     }
                 }
             });
-            return Ok((format!("<s>unsupported templ: {ident}</s>"), is_sidebar));
+            return Ok(TemplatedOrSidebar::Templeated(format!(
+                "<s>unsupported templ: {ident}</s>"
+            )));
         } //
     };
-    f(env, args).map(|s| (s, is_sidebar))
+    f(env, args).map(TemplatedOrSidebar::Templeated)
 }

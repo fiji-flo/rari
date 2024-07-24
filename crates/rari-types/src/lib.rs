@@ -11,6 +11,7 @@ use crate::fm_types::PageType;
 pub mod error;
 pub mod fm_types;
 pub mod globals;
+pub mod io;
 pub mod locale;
 pub mod settings;
 

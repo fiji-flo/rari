@@ -25,9 +25,7 @@ use crate::html::bubble_up::bubble_up_curriculum_page;
 use crate::html::modifier::add_missing_ids;
 use crate::html::rewriter::{post_process_html, post_process_inline_sidebar};
 use crate::html::sections::{split_sections, BuildSection, BuildSectionType, Splitted};
-use crate::html::sidebar::{
-    build_sidebars, expand_details_and_mark_current_for_inline_sidebar, postprocess_sidebar,
-};
+use crate::html::sidebar::{build_sidebars, expand_details_and_mark_current_for_inline_sidebar};
 use crate::specs::extract_specifications;
 use crate::templ::render::{decode_ref, render, Rendered};
 
@@ -125,7 +123,8 @@ pub struct PageContent {
     body: Vec<Section>,
     toc: Vec<TocEntry>,
     summary: Option<String>,
-    sidebar: Option<String>,
+    inline_sidebar: Option<String>,
+    sidebars: Vec<&'static str>,
 }
 
 pub fn make_toc(sections: &[BuildSection], with_h3: bool) -> Vec<TocEntry> {
@@ -161,27 +160,20 @@ pub fn build_content<T: PageLike>(page: &T) -> Result<PageContent, DocError> {
         sidebar,
     } = split_sections(&fragment).expect("DOOM");
 
-    // TODO cleanup
-    let mut sidebars = sidebars
-        .iter()
-        .map(|s| postprocess_sidebar(s, page))
-        .collect::<Vec<_>>();
-    if let Some(sidebar) = &sidebar {
-        sidebars.push(post_process_inline_sidebar(sidebar));
-    }
-
-    let sidebar = if sidebars.is_empty() {
-        None
+    let inline_sidebar = if let Some(sidebar) = sidebar {
+        Some(post_process_inline_sidebar(&sidebar)?)
     } else {
-        Some(sidebars.into_iter().collect::<Result<String, _>>()?)
+        None
     };
+
     let toc = make_toc(&sections, matches!(page.page_type(), PageType::Curriculum));
     let body = sections.into_iter().map(Into::into).collect();
     Ok(PageContent {
         body,
         toc,
         summary,
-        sidebar,
+        inline_sidebar,
+        sidebars,
     })
 }
 
@@ -190,12 +182,13 @@ pub fn build_doc(doc: &Doc) -> Result<BuiltDocy, DocError> {
         body,
         toc,
         summary,
-        sidebar,
+        inline_sidebar,
+        sidebars,
     } = build_content(doc)?;
-    let sidebar_html = if sidebar.is_some() {
-        sidebar
+    let sidebar_html = if inline_sidebar.is_some() {
+        inline_sidebar
     } else {
-        build_sidebars(doc)?
+        build_sidebars(doc, &sidebars)?
     };
     let baseline = get_baseline(&doc.meta.browser_compat);
     let folder = doc

@@ -111,16 +111,22 @@ fn render_sidebar(s: &str, doc: &Doc) -> Result<String, DocError> {
 }
 
 pub fn build_sidebar(s: &str, doc: &Doc) -> Result<String, DocError> {
+    tracing::info!("{s}");
     let rendered_sidebar = render_sidebar(s, doc)?;
     postprocess_sidebar(&rendered_sidebar, doc)
 }
 
-pub fn build_sidebars(doc: &Doc) -> Result<Option<String>, DocError> {
+pub fn build_sidebars(
+    doc: &Doc,
+    templ_sidebars: &[&'static str],
+) -> Result<Option<String>, DocError> {
     let out = doc
         .meta
         .sidebar
         .iter()
-        .map(|s| build_sidebar(s.as_str(), doc))
+        .map(|s| s.as_str())
+        .chain(templ_sidebars.iter().map(|s| *s))
+        .map(|s| build_sidebar(s, doc))
         .collect::<Result<String, DocError>>()?;
     Ok(if out.is_empty() { None } else { Some(out) })
 }

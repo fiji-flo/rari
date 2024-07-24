@@ -5,13 +5,13 @@ use rari_types::RariEnv;
 use tracing::{span, warn, Level};
 
 use super::parser::{parse, Token};
-use super::templs::invoke;
+use super::templs::{invoke, TemplatedOrSidebar};
 use crate::error::DocError;
 
 pub struct Rendered {
     pub content: String,
     pub templs: Vec<String>,
-    pub sidebars: Vec<String>,
+    pub sidebars: Vec<&'static str>,
 }
 
 pub fn render(env: &RariEnv, input: &str) -> Result<Rendered, DocError> {
@@ -93,14 +93,11 @@ pub fn render_tokens(env: &RariEnv, tokens: Vec<Token>, input: &str) -> Result<R
                 let span = span!(Level::ERROR, "templ", "{}", &ident);
                 let _enter = span.enter();
                 match invoke(env, &mac.ident, mac.args) {
-                    Ok((rendered, is_sidebar)) => {
-                        if is_sidebar {
-                            sidebars.push(rendered)
-                        } else {
-                            encode_ref(templs.len(), &mut out)?;
-                            templs.push(rendered)
-                        }
+                    Ok(TemplatedOrSidebar::Templeated(rendered)) => {
+                        encode_ref(templs.len(), &mut out)?;
+                        templs.push(rendered)
                     }
+                    Ok(TemplatedOrSidebar::Sidebar(sidebar)) => sidebars.push(sidebar),
                     Err(e) if deny_warnings() => return Err(e),
                     Err(e) => {
                         warn!("{e}");
