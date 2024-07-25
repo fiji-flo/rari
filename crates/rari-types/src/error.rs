@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use thiserror::Error;
 
 #[derive(Debug, PartialEq, Clone, Copy, Error)]
@@ -10,11 +8,4 @@ pub enum EnvError {
     NoTranslatedContent,
     #[error("BUILD_OUT_ROOT must be set")]
     NoBuildOut,
-}
-
-#[derive(Debug, Error)]
-#[error("io error: {source} ({path})")]
-pub struct RariIoError {
-    pub path: PathBuf,
-    pub source: std::io::Error,
 }
